@@ -1,12 +1,14 @@
 load('api_config.js');
 load('api_events.js');
 load('api_gpio.js');
-load('api_mqtt.js');
 load('api_net.js');
 load('api_sys.js');
 load('api_timer.js');
+load('api_adc.js');
+load('api_rpc.js');
 
-let led = Cfg.get('pins.led');
+let led = 2;
+let sensor = 32;
 let button = Cfg.get('pins.button');
 let topic = '/devices/' + Cfg.get('device.id') + '/events';
 
@@ -19,19 +21,24 @@ let getInfo = function() {
   });
 };
 
-// Blink built-in LED every second
+let success = ADC.enable(sensor);
+print('Success ADC: ', success);
+
+let sensorValues = [];
 GPIO.set_mode(led, GPIO.MODE_OUTPUT);
-Timer.set(1000 /* 1 sec */, Timer.REPEAT, function() {
-  let value = GPIO.toggle(led);
-  print(value ? 'Tick' : 'Tock', 'uptime:', Sys.uptime(), getInfo());
+Timer.set(100, Timer.REPEAT, function() {
+  let sensorValue = ADC.read(sensor);
+  if(sensorValues.length < 100) {
+    sensorValues.push(sensorValue);
+  }
+  GPIO.toggle(led);
+  //print('Sensor value: ', sensorValue);
 }, null);
 
-// Publish to MQTT topic on a button press. Button is wired to GPIO pin 0
-GPIO.set_button_handler(button, GPIO.PULL_UP, GPIO.INT_EDGE_NEG, 20, function() {
-  let message = getInfo();
-  let ok = MQTT.pub(topic, message, 1);
-  print('Published:', ok, topic, '->', message);
-}, null);
+RPC.addHandler('connect', function(args) {
+  print(args);
+  return { sensorValues: sensorValues };
+});
 
 // Monitor network connectivity.
 Event.addGroupHandler(Net.EVENT_GRP, function(ev, evdata, arg) {
