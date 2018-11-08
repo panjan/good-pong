@@ -9,6 +9,7 @@ load('api_rpc.js');
 
 let led = 2;
 let sensor = 32;
+let sensor2 = 35;
 let button = Cfg.get('pins.button');
 let topic = '/devices/' + Cfg.get('device.id') + '/events';
 
@@ -22,22 +23,30 @@ let getInfo = function() {
 };
 
 let success = ADC.enable(sensor);
-print('Success ADC: ', success);
+let success2 = ADC.enable(sensor2);
+print('Success ADC (sensor 1): ', success);
+print('Success ADC (sensor 2): ', success2);
 
 let sensorValues = [];
+let sensor2Values = [];
 GPIO.set_mode(led, GPIO.MODE_OUTPUT);
-Timer.set(100, Timer.REPEAT, function() {
+Timer.set(10, Timer.REPEAT, function() {
   let sensorValue = ADC.read(sensor);
+  let sensor2Value = ADC.read(sensor2);
   if(sensorValues.length < 100) {
     sensorValues.push(sensorValue);
+    sensor2Values.push(sensor2Value);
   }
   GPIO.toggle(led);
   //print('Sensor value: ', sensorValue);
 }, null);
 
 RPC.addHandler('connect', function(args) {
-  print(args);
-  return { sensorValues: sensorValues };
+  let oldSensorValues = sensorValues;
+  let oldSensor2Values = sensor2Values;
+  sensorValues = [];
+  sensor2Values = [];
+  return { sensorValues: oldSensorValues, sensor2Values: oldSensor2Values };
 });
 
 // Monitor network connectivity.
