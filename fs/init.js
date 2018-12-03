@@ -7,7 +7,7 @@ load('api_timer.js');
 load('api_adc.js');
 load('api_rpc.js');
 
-let led = 2;
+let led = 5;
 let sensor = 32;
 let sensor2 = 35;
 let button = Cfg.get('pins.button');
